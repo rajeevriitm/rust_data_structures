@@ -33,13 +33,25 @@ impl<T> Linked_List<T> {
     pub fn append(&mut self, value: T) {
         let node = Node { value, next: None };
         let node_rc = Rc::new(RefCell::new(node));
-        self.tail.as_ref().map(|x| {
-            x.borrow_mut().next = Some(node_rc.clone());
-        });
-        if self.head.is_none() {
-            self.head = Some(node_rc.clone())
-        }
+        match self.tail.take() {
+            Some(x) => x.borrow_mut().next = Some(node_rc.clone()),
+            None => self.head = Some(node_rc.clone()),
+        };
         self.tail = Some(node_rc);
         self.length += 1;
+    }
+    pub fn pop_front(&mut self) -> Option<T> {
+        if self.length == 1 {
+            self.tail.take();
+        }
+        self.head.take().map(|x| {
+            self.length -= 1;
+            let val = Rc::try_unwrap(x)
+                .ok()
+                .expect("failed to Rc unwrap")
+                .into_inner();
+            self.head = val.next;
+            val.value
+        })
     }
 }
